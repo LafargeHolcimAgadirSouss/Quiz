@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Quiz</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 2rem; }
+    .question { font-size: 1.5rem; margin-bottom: 1rem; }
+    .options button {
+      display: block;
+      margin: 0.5rem auto;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+    .feedback { font-weight: bold; margin-top: 1rem; }
+    .score { margin-top: 2rem; font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>Quiz Time!</h1>
+  <div id="quiz-container">
+    <div class="question" id="question"></div>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+  <div class="score" id="score"></div>
+
+  <script>
+    const scriptUrl = 'YOUR_WEB_APP_URL_HERE'; // Replace this with your Apps Script Web App URL
+
+    let questions = [];
+    let current = 0;
+    let score = 0;
+
+    fetch(scriptUrl)
+      .then(res => res.json())
+      .then(data => {
+        questions = data;
+        showQuestion();
+      });
+
+    function showQuestion() {
+      const q = questions[current];
+      document.getElementById("question").textContent = q["Question"];
+      document.getElementById("feedback").textContent = '';
+      const optionsDiv = document.getElementById("options");
+      optionsDiv.innerHTML = '';
+
+      ['A', 'B', 'C'].forEach(letter => {
+        const btn = document.createElement("button");
+        btn.textContent = q["Option " + letter];
+        btn.onclick = () => checkAnswer(letter, q["Correct Answer"]);
+        optionsDiv.appendChild(btn);
+      });
+    }
+
+    function checkAnswer(selected, correct) {
+      const feedback = document.getElementById("feedback");
+      if (selected === correct) {
+        feedback.textContent = "✅ Correct! Great job!";
+        score++;
+      } else {
+        feedback.textContent = `❌ Wrong. The correct answer is: ${correct}`;
+      }
+
+      setTimeout(() => {
+        current++;
+        if (current < questions.length) {
+          showQuestion();
+        } else {
+          showScore();
+        }
+      }, 1500);
+    }
+
+    function showScore() {
+      document.getElementById("quiz-container").innerHTML = '';
+      document.getElementById("score").innerHTML = `🎉 You scored ${score} out of ${questions.length}!`;
+    }
+  </script>
+</body>
+</html>
