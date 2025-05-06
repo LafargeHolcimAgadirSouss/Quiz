@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quiz Game</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #f0f0f0; padding: 20px; }
+    .question { font-size: 1.2em; margin: 20px 0; }
+    .choices button {
+      display: block;
+      margin: 10px auto;
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    #scoreboard { margin-top: 30px; }
+  </style>
+</head>
+<body>
+
+  <h1>Team Quiz Game</h1>
+
+  <label for="teamSelect">Choose Your Team:</label>
+  <select id="teamSelect">
+    <option value="Team A">Team A</option>
+    <option value="Team B">Team B</option>
+    <option value="Team C">Team C</option>
+  </select>
+
+  <div id="quiz">
+    <div class="question" id="questionText"></div>
+    <div class="choices" id="choicesContainer"></div>
+  </div>
+
+  <div id="scoreboard">
+    <h2>Scores</h2>
+    <ul id="scoreList"></ul>
+  </div>
+
+  <script>
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbwy1BJEtmDlJq7UVVoXqgXa9v8uxQ6Wqkjw1_AtloaFaKCB_x2D5REvx8uCxj0eZbg4/exec';
+    let questions = [];
+    let currentQuestionIndex = 0;
+    const teamScores = {
+      "Team A": 0,
+      "Team B": 0,
+      "Team C": 0
+    };
+
+    // Fetch data from Apps Script Web App
+    fetch(scriptUrl)
+      .then(res => res.json())
+      .then(data => {
+        questions = data.filter(q => q.Question && q.Choice1 && q.Correct);
+        startQuiz();
+      })
+      .catch(error => {
+        console.error("Failed to load questions:", error);
+      });
+
+    function startQuiz() {
+      if (questions.length > 0) {
+        displayQuestion();
+      } else {
+        document.getElementById('quiz').innerHTML = 'No questions found.';
+      }
+    }
+
+    function displayQuestion() {
+      const q = questions[currentQuestionIndex];
+      const questionText = document.getElementById('questionText');
+      const choicesContainer = document.getElementById('choicesContainer');
+
+      questionText.textContent = q.Question;
+      choicesContainer.innerHTML = '';
+
+      // Dynamically list all choices (assuming Choice1, Choice2, Choice3, etc.)
+      Object.keys(q).forEach(key => {
+        if (key.startsWith('Choice') && q[key]) {
+          const btn = document.createElement('button');
+          btn.textContent = q[key];
+          btn.onclick = () => handleAnswer(q[key], q.Correct);
+          choicesContainer.appendChild(btn);
+        }
+      });
+    }
+
+    function handleAnswer(selected, correctAnswer) {
+      const team = document.getElementById('teamSelect').value;
+      if (selected === correctAnswer) {
+        teamScores[team]++;
+      }
+
+      currentQuestionIndex++;
+      if (currentQuestionIndex < questions.length) {
+        displayQuestion();
+      } else {
+        showFinalScores();
+      }
+    }
+
+    function showFinalScores() {
+      document.getElementById('quiz').innerHTML = '<h2>Quiz Finished!</h2>';
+      const scoreboard = document.getElementById('scoreList');
+      scoreboard.innerHTML = '';
+
+      Object.entries(teamScores).forEach(([team, score]) => {
+        const li = document.createElement('li');
+        li.textContent = `${team}: ${score}`;
+        scoreboard.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>
