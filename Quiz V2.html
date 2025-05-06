@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Quiz</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      margin: 0;
+      background: #f9f9f9;
+    }
+    header {
+      background: #004d99;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+    }
+    header img {
+      height: 50px;
+    }
+    h1 {
+      text-align: center;
+      margin: 2rem 0 1rem;
+      color: #004d99;
+    }
+    #progress-container {
+      width: 80%;
+      height: 10px;
+      background: #ddd;
+      margin: 0 auto 20px;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #007acc;
+      transition: width 0.5s;
+    }
+    #quiz-container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 2rem;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      border-radius: 12px;
+    }
+    .question {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    .options button {
+      display: block;
+      width: 100%;
+      margin: 0.5rem 0;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      background: #eee;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .options button:hover {
+      background: #d0e8ff;
+    }
+    .feedback {
+      font-weight: bold;
+      margin-top: 1rem;
+      min-height: 2rem;
+      font-size: 1.2rem;
+      transition: 0.3s;
+      opacity: 0;
+    }
+    .feedback.show {
+      opacity: 1;
+    }
+    .correct { color: green; animation: pulse 1s ease; }
+    .wrong { color: red; animation: shake 0.5s ease; }
+    .score {
+      margin-top: 2rem;
+      font-size: 1.4rem;
+      text-align: center;
+      color: #004d99;
+    }
+    #timer {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #cc0000;
+      margin-bottom: 1rem;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <img src="green heart.png" alt="Logo Left">
+    <img src="holcim_logo.png" alt="Logo Right">
+  </header>
+
+  <h1>🎓 Test Your Knowledge!</h1>
+
+  <div id="progress-container">
+    <div id="progress-bar"></div>
+  </div>
+
+  <div id="quiz-container">
+    <div id="timer">⏱️ Time Left: <span id="time">10</span>s</div>
+    <div class="question" id="question"></div>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <div class="score" id="score"></div>
+
+  <script>
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbwy1BJEtmDlJq7UVVoXqgXa9v8uxQ6Wqkjw1_AtloaFaKCB_x2D5REvx8uCxj0eZbg4/exec'; // Replace with your actual Apps Script Web App URL
+    let questions = [];
+    let current = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 10;
+
+    fetch(scriptUrl)
+      .then(res => res.json())
+      .then(data => {
+        questions = data;
+        showQuestion();
+      });
+
+    function showQuestion() {
+      const q = questions[current];
+      document.getElementById("question").textContent = q["Question"];
+      document.getElementById("feedback").textContent = '';
+      document.getElementById("feedback").className = 'feedback';
+      document.getElementById("time").textContent = 10;
+      const optionsDiv = document.getElementById("options");
+      optionsDiv.innerHTML = '';
+
+      ['A', 'B', 'C'].forEach(letter => {
+        const btn = document.createElement("button");
+        btn.textContent = q["Option " + letter];
+        btn.onclick = () => {
+          clearInterval(timer);
+          checkAnswer(letter, q["Correct Answer"]);
+        };
+        optionsDiv.appendChild(btn);
+      });
+
+      updateProgressBar();
+      startTimer();
+    }
+
+    function startTimer() {
+      timeLeft = 10;
+      document.getElementById("time").textContent = timeLeft;
+      timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("time").textContent = timeLeft;
+        if (timeLeft === 0) {
+          clearInterval(timer);
+          showCorrectAndContinue();
+        }
+      }, 1000);
+    }
+
+    function showCorrectAndContinue() {
+      const feedback = document.getElementById("feedback");
+      feedback.textContent = `⏰ Time's up! The correct answer is: ${questions[current]["Correct Answer"]}`;
+      feedback.classList.add("wrong", "show");
+      setTimeout(() => {
+        current++;
+        if (current < questions.length) {
+          showQuestion();
+        } else {
+          showScore();
+        }
+      }, 2000);
+    }
+
+    function checkAnswer(selected, correct) {
+      const feedback = document.getElementById("feedback");
+      feedback.classList.add("show");
+
+      if (selected === correct) {
+        feedback.textContent = "✅ Correct! Great job!";
+        feedback.classList.add("correct");
+        score++;
+      } else {
+        feedback.textContent = `❌ Wrong. The correct answer is: ${correct}`;
+        feedback.classList.add("wrong");
+      }
+
+      setTimeout(() => {
+        current++;
+        if (current < questions.length) {
+          showQuestion();
+        } else {
+          showScore();
+        }
+      }, 2000);
+    }
+
+    function updateProgressBar() {
+      const progress = ((current) / questions.length) * 100;
+      document.getElementById("progress-bar").style.width = progress + "%";
+    }
+
+    function showScore() {
+      document.getElementById("quiz-container").innerHTML = '';
+      document.getElementById("score").innerHTML = `🎉 You scored <strong>${score}</strong> out of <strong>${questions.length}</strong>!`;
+      document.getElementById("progress-bar").style.width = "100%";
+    }
+  </script>
+</body>
+</html>
