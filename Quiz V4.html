@@ -9,12 +9,44 @@
       background: #f5f8fc;
       margin: 0;
       padding: 0;
+      display: flex;
     }
     header {
+      position: fixed;
+      width: 100%;
+      top: 0;
       background: #2c3e50;
       color: white;
       padding: 1rem;
       text-align: center;
+      z-index: 10;
+    }
+    #sidebar {
+      width: 200px;
+      background: #34495e;
+      color: white;
+      padding-top: 80px;
+      height: 100vh;
+      position: fixed;
+      overflow-y: auto;
+    }
+    #sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+    #sidebar li {
+      padding: 1rem;
+      cursor: pointer;
+      border-bottom: 1px solid #2c3e50;
+    }
+    #sidebar li:hover,
+    #sidebar li.active {
+      background: #2ecc71;
+    }
+    #main {
+      margin-left: 200px;
+      padding-top: 100px;
+      width: 100%;
     }
     #setup, #quiz, #results {
       max-width: 900px;
@@ -24,8 +56,13 @@
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    .team-input { margin-bottom: 1rem; }
-    .team-input label { display: block; margin-bottom: 0.5rem; }
+    .team-input {
+      margin-bottom: 1rem;
+    }
+    .team-input label {
+      display: block;
+      margin-bottom: 0.5rem;
+    }
     .team-input input {
       width: 100%;
       padding: 0.5rem;
@@ -76,7 +113,9 @@
       cursor: pointer;
       display: none;
     }
-    #scoreboard h2 { margin-bottom: 1rem; }
+    #scoreboard h2 {
+      margin-bottom: 1rem;
+    }
     #scoreboard ul {
       list-style: none;
       padding: 0;
@@ -97,46 +136,50 @@
     <h1>Team Quiz Challenge</h1>
   </header>
 
-  <div id="setup">
-    <h2>Enter Team Names</h2>
-    <div class="team-input"><label for="team1">Team 1:</label><input type="text" id="team1" required /></div>
-    <div class="team-input"><label for="team2">Team 2:</label><input type="text" id="team2" required /></div>
-    <div class="team-input"><label for="team3">Team 3:</label><input type="text" id="team3" required /></div>
-    <div class="team-input"><label for="team4">Team 4:</label><input type="text" id="team4" required /></div>
-    <button id="start-quiz">Start Quiz</button>
+  <div id="sidebar">
+    <ul id="question-list"></ul>
   </div>
 
-  <div id="quiz" style="display:none;">
-    <div id="timer"></div>
-    <div id="question-container">
-      <div class="question" id="question-text"></div>
+  <div id="main">
+    <div id="setup">
+      <h2>Enter Team Names</h2>
+      <div class="team-input"><label for="team1">Team 1:</label><input type="text" id="team1" required /></div>
+      <div class="team-input"><label for="team2">Team 2:</label><input type="text" id="team2" required /></div>
+      <div class="team-input"><label for="team3">Team 3:</label><input type="text" id="team3" required /></div>
+      <div class="team-input"><label for="team4">Team 4:</label><input type="text" id="team4" required /></div>
+      <button id="start-quiz">Start Quiz</button>
     </div>
-    <div id="team-answers"></div>
-    <button id="next-question">Next Question</button>
-  </div>
 
-  <div id="results" style="display:none;">
-    <h2>🏆 Final Scores</h2>
-    <div id="scoreboard"></div>
+    <div id="quiz" style="display:none;">
+      <div id="timer"></div>
+      <div id="question-container">
+        <div class="question" id="question-text"></div>
+      </div>
+      <div id="team-answers"></div>
+      <button id="next-question">Next Question</button>
+    </div>
+
+    <div id="results" style="display:none;">
+      <h2>🏆 Final Scores</h2>
+      <div id="scoreboard"></div>
+    </div>
   </div>
 
   <script>
-    const scriptUrl = 'https://script.google.com/macros/s/AKfycbwy1BJEtmDlJq7UVVoXqgXa9v8uxQ6Wqkjw1_AtloaFaKCB_x2D5REvx8uCxj0eZbg4/exec'; // Replace with actual script URL
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbwy1BJEtmDlJq7UVVoXqgXa9v8uxQ6Wqkjw1_AtloaFaKCB_x2D5REvx8uCxj0eZbg4/exec';
     let questions = [];
     let currentQuestionIndex = 0;
     let teams = [];
     let teamScores = {};
     let teamAnswers = {};
     let timer;
-    const TIME_LIMIT = 30;
+    let TIME_LIMIT = 30;
+    let activeTeamIndex = 0;
 
     document.getElementById('start-quiz').addEventListener('click', () => {
-      const team1 = document.getElementById('team1').value.trim();
-      const team2 = document.getElementById('team2').value.trim();
-      const team3 = document.getElementById('team3').value.trim();
-      const team4 = document.getElementById('team4').value.trim();
-      if (team1 && team2 && team3 && team4) {
-        teams = [team1, team2, team3, team4];
+      const teamInputs = [team1, team2, team3, team4].map(el => el.value.trim());
+      if (teamInputs.every(name => name)) {
+        teams = teamInputs;
         teams.forEach(team => teamScores[team] = 0);
         document.getElementById('setup').style.display = 'none';
         document.getElementById('quiz').style.display = 'block';
@@ -151,36 +194,50 @@
         .then(res => res.json())
         .then(data => {
           questions = data;
-          showQuestion();
+          populateSidebar();
+          showQuestion(0);
         })
         .catch(err => alert('Error loading questions.'));
     }
 
-    function showQuestion() {
+    function populateSidebar() {
+      const list = document.getElementById('question-list');
+      list.innerHTML = '';
+      questions.forEach((_, idx) => {
+        const li = document.createElement('li');
+        li.textContent = `Question ${idx + 1}`;
+        li.addEventListener('click', () => showQuestion(idx));
+        list.appendChild(li);
+      });
+    }
+
+    function showQuestion(index) {
+      clearInterval(timer);
+      currentQuestionIndex = index;
       teamAnswers = {};
-      document.getElementById('next-question').style.display = 'none';
-      const q = questions[currentQuestionIndex];
+      activeTeamIndex = 0;
+      document.querySelectorAll('#sidebar li').forEach((el, i) => {
+        el.classList.toggle('active', i === index);
+      });
+
+      const q = questions[index];
       document.getElementById('question-text').textContent = q['Question'];
       const container = document.getElementById('team-answers');
       container.innerHTML = '';
+      document.getElementById('next-question').style.display = 'none';
       startTimer();
 
       teams.forEach(team => {
         const div = document.createElement('div');
-        div.classList.add('team-section');
+        div.className = 'team-section';
+        div.dataset.team = team;
         div.innerHTML = `<h3>${team}</h3>`;
         ['A','B','C','D'].forEach(opt => {
           if (q['Option ' + opt]) {
             const btn = document.createElement('button');
             btn.textContent = q['Option ' + opt];
             btn.dataset.option = opt;
-            btn.addEventListener('click', () => {
-              if (!teamAnswers[team]) {
-                teamAnswers[team] = opt;
-                btn.classList.add('selected');
-                checkAllAnswered(q);
-              }
-            });
+            btn.addEventListener('click', () => handleAnswer(team, opt, btn, q));
             div.appendChild(btn);
           }
         });
@@ -188,13 +245,23 @@
       });
     }
 
-    function checkAllAnswered(q) {
-      if (Object.keys(teamAnswers).length === teams.length) {
-        clearInterval(timer);
-        showCorrectAnswers(q);
-        updateScores(q);
-        document.getElementById('next-question').style.display = 'block';
+    function handleAnswer(team, opt, btn, q) {
+      if (!teamAnswers[team]) {
+        teamAnswers[team] = opt;
+        btn.classList.add('selected');
+        goToNextTeam(q);
+        if (Object.keys(teamAnswers).length === teams.length) {
+          clearInterval(timer);
+          showCorrectAnswers(q);
+          updateScores(q);
+          document.getElementById('next-question').style.display = 'block';
+          markSidebarAsCompleted();
+        }
       }
+    }
+
+    function goToNextTeam(q) {
+      activeTeamIndex = (activeTeamIndex + 1) % teams.length;
     }
 
     function showCorrectAnswers(q) {
@@ -202,6 +269,8 @@
       document.querySelectorAll('.team-section button').forEach(btn => {
         if (btn.dataset.option === correct) {
           btn.style.border = '2px solid green';
+        } else {
+          btn.style.border = '1px solid #ccc';
         }
       });
     }
@@ -214,25 +283,32 @@
       });
     }
 
+    function markSidebarAsCompleted() {
+      const listItems = document.querySelectorAll('#sidebar li');
+      listItems[currentQuestionIndex].textContent = `✅ Question ${currentQuestionIndex + 1}`;
+    }
+
     function startTimer() {
       let timeLeft = TIME_LIMIT;
       const timerDisplay = document.getElementById('timer');
       timerDisplay.textContent = `⏱️ Time left: ${timeLeft}s`;
-      clearInterval(timer);
       timer = setInterval(() => {
         timeLeft--;
         timerDisplay.textContent = `⏱️ Time left: ${timeLeft}s`;
         if (timeLeft <= 0) {
           clearInterval(timer);
-          checkAllAnswered(questions[currentQuestionIndex]);
+          showCorrectAnswers(questions[currentQuestionIndex]);
+          updateScores(questions[currentQuestionIndex]);
+          document.getElementById('next-question').style.display = 'block';
+          markSidebarAsCompleted();
         }
       }, 1000);
     }
 
     document.getElementById('next-question').addEventListener('click', () => {
-      currentQuestionIndex++;
-      if (currentQuestionIndex < questions.length) {
-        showQuestion();
+      const nextIndex = currentQuestionIndex + 1;
+      if (nextIndex < questions.length) {
+        showQuestion(nextIndex);
       } else {
         showResults();
       }
@@ -244,15 +320,27 @@
       const board = document.getElementById('scoreboard');
       board.innerHTML = '';
       const ul = document.createElement('ul');
-      teams.sort((a, b) => teamScores[b] - teamScores[a])
+      teams.sort((a,b) => teamScores[b] - teamScores[a])
         .forEach((team, i) => {
           const li = document.createElement('li');
-          li.textContent = `${i + 1}. ${team}: ${teamScores[team]} points`;
+          li.textContent = `${i+1}. ${team}: ${teamScores[team]} points`;
           if (i === 0) li.style.fontWeight = 'bold';
           ul.appendChild(li);
         });
       board.appendChild(ul);
     }
+
+    document.addEventListener('keydown', (e) => {
+      const keyMap = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+      if (keyMap[e.key]) {
+        const team = teams[activeTeamIndex];
+        const section = document.querySelector(`.team-section[data-team="${team}"]`);
+        if (section && !teamAnswers[team]) {
+          const btn = Array.from(section.querySelectorAll('button')).find(b => b.dataset.option === keyMap[e.key]);
+          if (btn) btn.click();
+        }
+      }
+    });
   </script>
 </body>
 </html>
