@@ -2,214 +2,134 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Team Quiz Challenge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz Animation Result</title>
   <style>
-    /* existing styles kept as-is */
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f5f8fc;
-      margin: 0;
-      padding: 0;
-      display: flex;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f0f0f0;
     }
-    /* ... other styles ... */
-    #results-animation {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-top: 2rem;
-      animation: bounce 2s ease infinite;
-      font-size: 3rem;
+
+    .question {
+      background: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
     }
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-20px); }
+
+    .question h3 {
+      margin-bottom: 10px;
+    }
+
+    .question input[type="radio"] {
+      margin-right: 10px;
+    }
+
+    .question label {
+      display: block;
+      cursor: pointer;
+      margin-bottom: 5px;
+    }
+
+    #result {
+      margin-top: 30px;
+      padding: 20px;
+      background-color: #dff0d8;
+      border: 1px solid #3c763d;
+      border-radius: 8px;
+      display: none;
+    }
+
+    #drumroll {
+      display: none;
+      font-size: 24px;
+      font-weight: bold;
+      animation: shake 1s infinite;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    @keyframes shake {
+      0% { transform: rotate(0deg); }
+      25% { transform: rotate(5deg); }
+      50% { transform: rotate(-5deg); }
+      75% { transform: rotate(5deg); }
+      100% { transform: rotate(0deg); }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Team Quiz Challenge</h1>
-  </header>
-  <div id="sidebar">
-    <ul id="question-list"></ul>
-  </div>
-  <div id="main">
-    <div id="setup">
-      <h2>Enter Team Names</h2>
-      <div class="team-input"><label for="team1">Team 1:</label><input type="text" id="team1" required /></div>
-      <div class="team-input"><label for="team2">Team 2:</label><input type="text" id="team2" required /></div>
-      <div class="team-input"><label for="team3">Team 3:</label><input type="text" id="team3" required /></div>
-      <div class="team-input"><label for="team4">Team 4:</label><input type="text" id="team4" required /></div>
-      <button id="start-quiz">Start Quiz</button>
+
+  <div id="quiz">
+    <div class="question" data-question="0">
+      <h3>1. What is the capital of France?</h3>
+      <label><input type="radio" name="q0" value="A"> Berlin</label>
+      <label><input type="radio" name="q0" value="B"> Madrid</label>
+      <label><input type="radio" name="q0" value="C"> Paris</label>
     </div>
-    <div id="quiz" style="display:none;">
-      <div id="timer"></div>
-      <div id="question-container">
-        <div class="question" id="question-text"></div>
-      </div>
-      <div id="team-answers"></div>
-      <button id="next-question">Next Question</button>
+    <div class="question" data-question="1">
+      <h3>2. What is 2 + 2?</h3>
+      <label><input type="radio" name="q1" value="A"> 3</label>
+      <label><input type="radio" name="q1" value="B"> 4</label>
+      <label><input type="radio" name="q1" value="C"> 5</label>
     </div>
-    <div id="results" style="display:none;">
-      <h2>🏆 Final Scores</h2>
-      <div id="scoreboard"></div>
-      <div id="results-animation">🎉🎉🎉</div>
+    <div class="question" data-question="2">
+      <h3>3. Which planet is known as the Red Planet?</h3>
+      <label><input type="radio" name="q2" value="A"> Venus</label>
+      <label><input type="radio" name="q2" value="B"> Mars</label>
+      <label><input type="radio" name="q2" value="C"> Jupiter</label>
     </div>
   </div>
+
+  <div id="drumroll">🥁 Drum Roll... 🥁</div>
+  <div id="result"></div>
+
   <script>
-    const scriptUrl = 'https://script.google.com/macros/s/AKfycbwy1BJEtmDlJq7UVVoXqgXa9v8uxQ6Wqkjw1_AtloaFaKCB_x2D5REvx8uCxj0eZbg4/exec';
-    let questions = [];
-    let currentQuestionIndex = 0;
-    let teams = [];
-    let teamScores = {};
-    let teamAnswers = {};
-    let timer;
-    let TIME_LIMIT = 30;
-    let completedIndexes = JSON.parse(localStorage.getItem('completedIndexes') || '[]');
+    const correctAnswers = ['C', 'B', 'B'];
+    let answers = new Array(correctAnswers.length).fill(null);
+    const radios = document.querySelectorAll('input[type="radio"]');
 
-    document.getElementById('start-quiz').addEventListener('click', () => {
-      const teamInputs = [team1, team2, team3, team4].map(el => el.value.trim());
-      if (teamInputs.every(name => name)) {
-        teams = teamInputs;
-        teams.forEach(team => teamScores[team] = 0);
-        document.getElementById('setup').style.display = 'none';
-        document.getElementById('quiz').style.display = 'block';
-        fetchQuestions();
-      } else {
-        alert('Please enter all team names.');
-      }
+    radios.forEach(radio => {
+      radio.addEventListener('change', function () {
+        const questionIndex = parseInt(this.name.substring(1));
+        if (answers[questionIndex] !== null) return; // already answered
+
+        answers[questionIndex] = this.value;
+
+        // Disable all radios in this question
+        const questionDiv = document.querySelector(`.question[data-question="${questionIndex}"]`);
+        const inputs = questionDiv.querySelectorAll('input');
+        inputs.forEach(input => input.disabled = true);
+
+        // Check if all questions are answered
+        if (!answers.includes(null)) {
+          showDrumRoll();
+        }
+      });
     });
 
-    function fetchQuestions() {
-      fetch(scriptUrl)
-        .then(res => res.json())
-        .then(data => {
-          questions = data.filter((_, i) => !completedIndexes.includes(i));
-          populateSidebar();
-          if (questions.length > 0) showQuestion(0);
-          else showResults();
-        })
-        .catch(err => alert('Error loading questions.'));
+    function showDrumRoll() {
+      document.getElementById("drumroll").style.display = "block";
+
+      setTimeout(() => {
+        document.getElementById("drumroll").style.display = "none";
+        showResult();
+      }, 3000);
     }
 
-    function populateSidebar() {
-      const list = document.getElementById('question-list');
-      list.innerHTML = '';
-      questions.forEach((_, idx) => {
-        const li = document.createElement('li');
-        li.textContent = `Question ${idx + 1}`;
-        li.addEventListener('click', () => showQuestion(idx));
-        list.appendChild(li);
+    function showResult() {
+      let score = 0;
+      answers.forEach((answer, index) => {
+        if (answer === correctAnswers[index]) score++;
       });
-    }
 
-    function showQuestion(index) {
-      clearInterval(timer);
-      currentQuestionIndex = index;
-      teamAnswers = {};
-      document.querySelectorAll('#sidebar li').forEach((el, i) => {
-        el.classList.toggle('active', i === index);
-      });
-      const q = questions[index];
-      document.getElementById('question-text').textContent = q['Question'];
-      const container = document.getElementById('team-answers');
-      container.innerHTML = '';
-      document.getElementById('next-question').style.display = 'none';
-      startTimer();
-
-      teams.forEach(team => {
-        const div = document.createElement('div');
-        div.className = 'team-section';
-        div.dataset.team = team;
-        div.innerHTML = `<h3>${team}</h3>`;
-        ['A','B','C','D'].forEach(opt => {
-          if (q['Option ' + opt]) {
-            const btn = document.createElement('button');
-            btn.textContent = q['Option ' + opt];
-            btn.dataset.option = opt;
-            btn.addEventListener('click', () => handleAnswer(team, opt, btn, q));
-            div.appendChild(btn);
-          }
-        });
-        container.appendChild(div);
-      });
-    }
-
-    function handleAnswer(team, opt, btn, q) {
-      if (!teamAnswers[team]) {
-        teamAnswers[team] = opt;
-        btn.classList.add('selected');
-        if (Object.keys(teamAnswers).length === teams.length) {
-          clearInterval(timer);
-          showCorrectAnswers(q);
-          updateScores(q);
-          document.getElementById('next-question').style.display = 'block';
-          markSidebarAsCompleted();
-        }
-      }
-    }
-
-    function showCorrectAnswers(q) {
-      const correct = q['Correct Answer'];
-      document.querySelectorAll('.team-section button').forEach(btn => {
-        if (btn.dataset.option === correct) {
-          btn.style.border = '2px solid green';
-        } else {
-          btn.style.border = '1px solid #ccc';
-        }
-      });
-    }
-
-    function updateScores(q) {
-      teams.forEach(team => {
-        if (teamAnswers[team] === q['Correct Answer']) {
-          teamScores[team]++;
-        }
-      });
-    }
-
-    function markSidebarAsCompleted() {
-      completedIndexes.push(currentQuestionIndex);
-      localStorage.setItem('completedIndexes', JSON.stringify(completedIndexes));
-      const listItems = document.querySelectorAll('#sidebar li');
-      listItems[currentQuestionIndex].textContent = `✅ Question ${currentQuestionIndex + 1}`;
-    }
-
-    function startTimer() {
-      let timeLeft = TIME_LIMIT;
-      const timerDisplay = document.getElementById('timer');
-      timerDisplay.textContent = `⏱️ Time left: ${timeLeft}s`;
-      timer = setInterval(() => {
-        timeLeft--;
-        timerDisplay.textContent = `⏱️ Time left: ${timeLeft}s`;
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          showCorrectAnswers(questions[currentQuestionIndex]);
-          updateScores(questions[currentQuestionIndex]);
-          document.getElementById('next-question').style.display = 'block';
-          markSidebarAsCompleted();
-        }
-      }, 1000);
-    }
-
-    document.getElementById('next-question').addEventListener('click', () => {
-      const nextIndex = currentQuestionIndex + 1;
-      if (nextIndex < questions.length) {
-        showQuestion(nextIndex);
-      } else {
-        showResults();
-      }
-    });
-
-    function showResults() {
-      document.getElementById('quiz').style.display = 'none';
-      document.getElementById('results').style.display = 'block';
-      const scoreboard = document.getElementById('scoreboard');
-      scoreboard.innerHTML = '<ul>' +
-        teams.map(team => `<li><strong>${team}:</strong> ${teamScores[team]} points</li>`).join('') +
-        '</ul>';
+      const resultDiv = document.getElementById("result");
+      resultDiv.style.display = "block";
+      resultDiv.innerHTML = `<h2>🎉 Your Score: ${score} / ${correctAnswers.length}</h2>`;
     }
   </script>
+
 </body>
 </html>
