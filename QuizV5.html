@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Team Quiz Challenge</title>
+  <style>
+    /* existing styles kept as-is */
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f8fc;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    /* ... other styles ... */
+    #results-animation {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 2rem;
+      animation: bounce 2s ease infinite;
+      font-size: 3rem;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Team Quiz Challenge</h1>
+  </header>
+  <div id="sidebar">
+    <ul id="question-list"></ul>
+  </div>
+  <div id="main">
+    <div id="setup">
+      <h2>Enter Team Names</h2>
+      <div class="team-input"><label for="team1">Team 1:</label><input type="text" id="team1" required /></div>
+      <div class="team-input"><label for="team2">Team 2:</label><input type="text" id="team2" required /></div>
+      <div class="team-input"><label for="team3">Team 3:</label><input type="text" id="team3" required /></div>
+      <div class="team-input"><label for="team4">Team 4:</label><input type="text" id="team4" required /></div>
+      <button id="start-quiz">Start Quiz</button>
+    </div>
+    <div id="quiz" style="display:none;">
+      <div id="timer"></div>
+      <div id="question-container">
+        <div class="question" id="question-text"></div>
+      </div>
+      <div id="team-answers"></div>
+      <button id="next-question">Next Question</button>
+    </div>
+    <div id="results" style="display:none;">
+      <h2>🏆 Final Scores</h2>
+      <div id="scoreboard"></div>
+      <div id="results-animation">🎉🎉🎉</div>
+    </div>
+  </div>
+  <script>
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbwy1BJEtmDlJq7UVVoXqgXa9v8uxQ6Wqkjw1_AtloaFaKCB_x2D5REvx8uCxj0eZbg4/exec';
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let teams = [];
+    let teamScores = {};
+    let teamAnswers = {};
+    let timer;
+    let TIME_LIMIT = 30;
+    let completedIndexes = JSON.parse(localStorage.getItem('completedIndexes') || '[]');
+
+    document.getElementById('start-quiz').addEventListener('click', () => {
+      const teamInputs = [team1, team2, team3, team4].map(el => el.value.trim());
+      if (teamInputs.every(name => name)) {
+        teams = teamInputs;
+        teams.forEach(team => teamScores[team] = 0);
+        document.getElementById('setup').style.display = 'none';
+        document.getElementById('quiz').style.display = 'block';
+        fetchQuestions();
+      } else {
+        alert('Please enter all team names.');
+      }
+    });
+
+    function fetchQuestions() {
+      fetch(scriptUrl)
+        .then(res => res.json())
+        .then(data => {
+          questions = data.filter((_, i) => !completedIndexes.includes(i));
+          populateSidebar();
+          if (questions.length > 0) showQuestion(0);
+          else showResults();
+        })
+        .catch(err => alert('Error loading questions.'));
+    }
+
+    function populateSidebar() {
+      const list = document.getElementById('question-list');
+      list.innerHTML = '';
+      questions.forEach((_, idx) => {
+        const li = document.createElement('li');
+        li.textContent = `Question ${idx + 1}`;
+        li.addEventListener('click', () => showQuestion(idx));
+        list.appendChild(li);
+      });
+    }
+
+    function showQuestion(index) {
+      clearInterval(timer);
+      currentQuestionIndex = index;
+      teamAnswers = {};
+      document.querySelectorAll('#sidebar li').forEach((el, i) => {
+        el.classList.toggle('active', i === index);
+      });
+      const q = questions[index];
+      document.getElementById('question-text').textContent = q['Question'];
+      const container = document.getElementById('team-answers');
+      container.innerHTML = '';
+      document.getElementById('next-question').style.display = 'none';
+      startTimer();
+
+      teams.forEach(team => {
+        const div = document.createElement('div');
+        div.className = 'team-section';
+        div.dataset.team = team;
+        div.innerHTML = `<h3>${team}</h3>`;
+        ['A','B','C','D'].forEach(opt => {
+          if (q['Option ' + opt]) {
+            const btn = document.createElement('button');
+            btn.textContent = q['Option ' + opt];
+            btn.dataset.option = opt;
+            btn.addEventListener('click', () => handleAnswer(team, opt, btn, q));
+            div.appendChild(btn);
+          }
+        });
+        container.appendChild(div);
+      });
+    }
+
+    function handleAnswer(team, opt, btn, q) {
+      if (!teamAnswers[team]) {
+        teamAnswers[team] = opt;
+        btn.classList.add('selected');
+        if (Object.keys(teamAnswers).length === teams.length) {
+          clearInterval(timer);
+          showCorrectAnswers(q);
+          updateScores(q);
+          document.getElementById('next-question').style.display = 'block';
+          markSidebarAsCompleted();
+        }
+      }
+    }
+
+    function showCorrectAnswers(q) {
+      const correct = q['Correct Answer'];
+      document.querySelectorAll('.team-section button').forEach(btn => {
+        if (btn.dataset.option === correct) {
+          btn.style.border = '2px solid green';
+        } else {
+          btn.style.border = '1px solid #ccc';
+        }
+      });
+    }
+
+    function updateScores(q) {
+      teams.forEach(team => {
+        if (teamAnswers[team] === q['Correct Answer']) {
+          teamScores[team]++;
+        }
+      });
+    }
+
+    function markSidebarAsCompleted() {
+      completedIndexes.push(currentQuestionIndex);
+      localStorage.setItem('completedIndexes', JSON.stringify(completedIndexes));
+      const listItems = document.querySelectorAll('#sidebar li');
+      listItems[currentQuestionIndex].textContent = `✅ Question ${currentQuestionIndex + 1}`;
+    }
+
+    function startTimer() {
+      let timeLeft = TIME_LIMIT;
+      const timerDisplay = document.getElementById('timer');
+      timerDisplay.textContent = `⏱️ Time left: ${timeLeft}s`;
+      timer = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = `⏱️ Time left: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          showCorrectAnswers(questions[currentQuestionIndex]);
+          updateScores(questions[currentQuestionIndex]);
+          document.getElementById('next-question').style.display = 'block';
+          markSidebarAsCompleted();
+        }
+      }, 1000);
+    }
+
+    document.getElementById('next-question').addEventListener('click', () => {
+      const nextIndex = currentQuestionIndex + 1;
+      if (nextIndex < questions.length) {
+        showQuestion(nextIndex);
+      } else {
+        showResults();
+      }
+    });
+
+    function showResults() {
+      document.getElementById('quiz').style.display = 'none';
+      document.getElementById('results').style.display = 'block';
+      const scoreboard = document.getElementById('scoreboard');
+      scoreboard.innerHTML = '<ul>' +
+        teams.map(team => `<li><strong>${team}:</strong> ${teamScores[team]} points</li>`).join('') +
+        '</ul>';
+    }
+  </script>
+</body>
+</html>
