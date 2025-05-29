@@ -4,304 +4,942 @@
   <meta charset="UTF-8" />
   <title>Team Quiz Challenge</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+    
+    :root {
+      --primary: #3498db;
+      --secondary: #2ecc71;
+      --danger: #e74c3c;
+      --dark: #2c3e50;
+      --light: #ecf0f1;
+      --highlight: #f1c40f;
+    }
+    
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f5f8fc;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #f5f8fc 0%, #e3e9f2 100%);
       margin: 0;
       padding: 0;
       display: flex;
+      min-height: 100vh;
     }
+    
     header {
       position: fixed;
       width: 100%;
       top: 0;
-      background: #2c3e50;
+      background: var(--dark);
       color: white;
       padding: 1rem;
       text-align: center;
       z-index: 10;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
+    
     #sidebar {
-      width: 200px;
-      background: #34495e;
+      width: 220px;
+      background: var(--dark);
       color: white;
       padding-top: 80px;
       height: 100vh;
       position: fixed;
       overflow-y: auto;
+      transition: transform 0.3s ease;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
     }
+    
+    #sidebar.collapsed {
+      transform: translateX(-180px);
+    }
+    
+    #sidebar-toggle {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      background: var(--secondary);
+      border: none;
+      color: white;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    
+    #sidebar-toggle:hover {
+      transform: rotate(90deg);
+    }
+    
     #sidebar ul {
       list-style: none;
       padding: 0;
     }
+    
     #sidebar li {
       padding: 1rem;
       cursor: pointer;
-      border-bottom: 1px solid #2c3e50;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
     }
-    #sidebar li:hover,
+    
+    #sidebar li:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    
     #sidebar li.active {
-      background: #2ecc71;
+      background: var(--secondary);
+      font-weight: bold;
     }
+    
     #sidebar li.completed {
-      background: #27ae60;
+      background: rgba(46, 204, 113, 0.2);
     }
+    
+    #sidebar li .question-number {
+      margin-right: 10px;
+      font-weight: bold;
+    }
+    
     #main {
-      margin-left: 200px;
+      margin-left: 220px;
       padding-top: 100px;
-      width: 100%;
+      width: calc(100% - 220px);
+      transition: margin 0.3s ease;
     }
+    
+    #main.expanded {
+      margin-left: 40px;
+      width: calc(100% - 40px);
+    }
+    
     #setup, #quiz, #results {
       max-width: 900px;
       margin: 2rem auto;
       background: white;
       padding: 2rem;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      animation: fadeIn 0.5s ease;
+      position: relative;
+      overflow: hidden;
     }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
     .team-input {
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
+      position: relative;
     }
+    
     .team-input label {
       display: block;
       margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--dark);
     }
+    
     .team-input input {
       width: 100%;
-      padding: 0.5rem;
+      padding: 0.75rem;
       font-size: 1rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      transition: all 0.3s ease;
     }
+    
+    .team-input input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+      outline: none;
+    }
+    
     .question {
-      font-size: 1.4rem;
+      font-size: 1.5rem;
       font-weight: bold;
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
+      color: var(--dark);
+      line-height: 1.4;
+      animation: slideIn 0.5s ease;
     }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    
     .team-section {
       margin-bottom: 2rem;
-      border-top: 1px solid #ddd;
-      padding-top: 1rem;
+      border-top: 1px solid #eee;
+      padding-top: 1.5rem;
+      animation: fadeInUp 0.5s ease;
     }
+    
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
     .team-section h3 {
-      margin-bottom: 0.5rem;
-      color: #2c3e50;
+      margin-bottom: 1rem;
+      color: var(--dark);
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
     }
+    
+    .team-section h3 .team-score {
+      margin-left: auto;
+      background: var(--primary);
+      color: white;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+    
     .team-section button {
       display: block;
       width: 100%;
-      margin: 0.25rem 0;
-      padding: 0.5rem;
-      font-size: 1rem;
+      margin: 0.5rem 0;
+      padding: 0.75rem;
+      font-size: 1.1rem;
       border: none;
-      border-radius: 6px;
-      background: #ecf0f1;
+      border-radius: 8px;
+      background: var(--light);
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.3s ease;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
     }
+    
     .team-section button:hover {
       background: #d0dce5;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
+    
+    .team-section button:active {
+      transform: translateY(0);
+    }
+    
     .team-section button.selected {
-      background: #2ecc71;
+      background: var(--secondary);
+      color: white;
+      font-weight: bold;
+      animation: pulse 0.5s;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .team-section button.correct {
+      background: var(--secondary);
       color: white;
       font-weight: bold;
     }
+    
+    .team-section button.incorrect {
+      background: var(--danger);
+      color: white;
+      opacity: 0.7;
+    }
+    
+    .team-section button::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255,255,255,0.2);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .team-section button:hover::after {
+      transform: translateX(0);
+    }
+    
     #next-question {
-      margin-top: 1rem;
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
-      background: #2980b9;
+      margin-top: 1.5rem;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      background: var(--primary);
       color: white;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       display: none;
+      transition: all 0.3s ease;
+      font-weight: bold;
     }
+    
+    #next-question:hover {
+      background: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(41, 128, 185, 0.3);
+    }
+    
+    #next-question:active {
+      transform: translateY(0);
+    }
+    
     #scoreboard h2 {
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      font-size: 2rem;
+      color: var(--dark);
     }
+    
     #scoreboard ul {
       list-style: none;
       padding: 0;
     }
+    
     #scoreboard li {
-      margin-bottom: 0.5rem;
-      font-size: 1.2rem;
-    }
-    #timer {
-      font-size: 1.2rem;
-      color: #e74c3c;
       margin-bottom: 1rem;
+      font-size: 1.3rem;
+      padding: 1rem;
+      border-radius: 8px;
+      background: var(--light);
+      display: flex;
+      align-items: center;
+      transition: all 0.3s ease;
     }
-    #drumroll {
+    
+    #scoreboard li:hover {
+      transform: translateX(10px);
+    }
+    
+    #scoreboard li .rank {
+      font-weight: bold;
+      margin-right: 1rem;
+      width: 30px;
+      height: 30px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #scoreboard li .team-name {
+      flex-grow: 1;
+    }
+    
+    #scoreboard li .team-score {
+      font-weight: bold;
+      color: var(--dark);
+    }
+    
+    #timer {
+      font-size: 1.3rem;
+      color: var(--danger);
+      margin-bottom: 1.5rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(231, 76, 60, 0.1);
+      padding: 0.8rem;
+      border-radius: 8px;
+      animation: pulse 1s infinite;
+    }
+    
+    #timer span {
+      margin-left: 0.5rem;
+    }
+    
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      background-color: var(--highlight);
+      opacity: 0;
+      z-index: 1000;
+      animation: confetti 5s ease-in-out;
+    }
+    
+    @keyframes confetti {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(1000px) rotate(720deg); opacity: 0; }
+    }
+    
+    .progress-bar {
+      height: 5px;
+      background: var(--primary);
+      position: absolute;
+      top: 0;
+      left: 0;
+      transition: width 0.5s ease;
+    }
+    
+    .team-active-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      background: var(--highlight);
+      border-radius: 50%;
+      margin-left: 10px;
+      animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .celebration {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 3rem;
       text-align: center;
-      font-size: 2rem;
-      animation: drumroll 2s ease-in-out forwards;
-      display: none;
+      animation: fadeIn 0.5s ease;
     }
-    @keyframes drumroll {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.2); }
-      100% { transform: scale(1); }
+    
+    .celebration h2 {
+      margin-bottom: 2rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .celebration button {
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      background: var(--secondary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 2rem;
+    }
+    
+    .audio-control {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--dark);
+      color: white;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    
+    @media (max-width: 768px) {
+      #sidebar {
+        transform: translateX(-180px);
+      }
+      
+      #sidebar.collapsed {
+        transform: translateX(0);
+      }
+      
+      #main {
+        margin-left: 40px;
+        width: calc(100% - 40px);
+      }
+      
+      #main.expanded {
+        margin-left: 220px;
+        width: calc(100% - 220px);
+      }
     }
   </style>
 </head>
 <body>
-  <header><h1>Team Quiz Challenge</h1></header>
-  <div id="sidebar"><ul id="question-list"></ul></div>
+  <header>
+    <h1>🎮 Team Quiz Challenge 🏆</h1>
+  </header>
+
+  <div id="sidebar">
+    <button id="sidebar-toggle">≡</button>
+    <ul id="question-list"></ul>
+  </div>
+
   <div id="main">
     <div id="setup">
-      <h2>Enter Team Names</h2>
-      <div class="team-input"><label>Team 1:</label><input type="text" id="team1"></div>
-      <div class="team-input"><label>Team 2:</label><input type="text" id="team2"></div>
-      <div class="team-input"><label>Team 3:</label><input type="text" id="team3"></div>
-      <div class="team-input"><label>Team 4:</label><input type="text" id="team4"></div>
-      <button id="start-quiz">Start Quiz</button>
+      <div class="progress-bar" style="width: 0%"></div>
+      <h2>👋 Welcome to Team Quiz Challenge!</h2>
+      <p>Enter your team names to get started:</p>
+      <div class="team-input">
+        <label for="team1">Team 1:</label>
+        <input type="text" id="team1" placeholder="Enter team name" required />
+      </div>
+      <div class="team-input">
+        <label for="team2">Team 2:</label>
+        <input type="text" id="team2" placeholder="Enter team name" required />
+      </div>
+      <div class="team-input">
+        <label for="team3">Team 3:</label>
+        <input type="text" id="team3" placeholder="Enter team name" required />
+      </div>
+      <div class="team-input">
+        <label for="team4">Team 4:</label>
+        <input type="text" id="team4" placeholder="Enter team name" required />
+      </div>
+      <button id="start-quiz" class="pulse-button">🚀 Start Quiz</button>
     </div>
 
     <div id="quiz" style="display:none;">
-      <div id="timer"></div>
-      <div class="question" id="question-text"></div>
+      <div class="progress-bar" style="width: 0%"></div>
+      <div id="timer">⏱️ <span>30</span> seconds remaining</div>
+      <div id="question-container">
+        <div class="question" id="question-text"></div>
+      </div>
       <div id="team-answers"></div>
-      <button id="next-question">Next Question</button>
+      <button id="next-question">Next Question ➡️</button>
     </div>
 
-    <div id="drumroll">🥁🥁🥁 Drum Roll... 🥁🥁🥁</div>
-
     <div id="results" style="display:none;">
+      <div class="progress-bar" style="width: 100%"></div>
       <h2>🏆 Final Scores</h2>
       <div id="scoreboard"></div>
+      <button id="play-again">🔄 Play Again</button>
     </div>
   </div>
 
-<script>
-const scriptUrl = 'https://script.google.com/macros/s/AKfycbwy1BJEtmDlJq7UVVoXqgXa9v8uxQ6Wqkjw1_AtloaFaKCB_x2D5REvx8uCxj0eZbg4/exec'; // Replace with actual URL
-let questions = [], currentQuestionIndex = 0, teams = [], teamScores = {}, teamAnswers = {}, timer, TIME_LIMIT = 30;
+  <div class="audio-control" id="audio-control">🔊</div>
 
-document.getElementById('start-quiz').onclick = () => {
-  const teamInputs = [team1, team2, team3, team4].map(i => i.value.trim());
-  if (teamInputs.every(Boolean)) {
-    teams = teamInputs;
-    teams.forEach(team => teamScores[team] = 0);
-    document.getElementById('setup').style.display = 'none';
-    document.getElementById('quiz').style.display = 'block';
-    fetchQuestions();
-  } else alert('Fill in all team names');
-};
+  <audio id="correct-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3"></audio>
+  <audio id="wrong-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+  <audio id="timer-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-fast-clock-ticking-1064.mp3"></audio>
+  <audio id="countdown-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-explosion-2759.mp3"></audio>
+  <audio id="background-music" loop src="https://assets.mixkit.co/music/preview/mixkit-game-show-approach-1080.mp3"></audio>
+  <audio id="win-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3"></audio>
 
-function fetchQuestions() {
-  fetch(scriptUrl)
-    .then(res => res.json())
-    .then(data => {
-      questions = data;
-      populateSidebar();
-      showQuestion(0);
+  <script>
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbwy1BJEtmDlJq7UVVoXqgXa9v8uxQ6Wqkjw1_AtloaFaKCB_x2D5REvx8uCxj0eZbg4/exec';
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let teams = [];
+    let teamScores = {};
+    let teamAnswers = {};
+    let timer;
+    let TIME_LIMIT = 30;
+    let activeTeamIndex = 0;
+    let isAudioEnabled = true;
+
+    // DOM elements
+    const audioControl = document.getElementById('audio-control');
+    const correctSound = document.getElementById('correct-sound');
+    const wrongSound = document.getElementById('wrong-sound');
+    const timerSound = document.getElementById('timer-sound');
+    const countdownSound = document.getElementById('countdown-sound');
+    const backgroundMusic = document.getElementById('background-music');
+    const winSound = document.getElementById('win-sound');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('main');
+
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set up event listeners
+      document.getElementById('start-quiz').addEventListener('click', startQuiz);
+      document.getElementById('next-question').addEventListener('click', nextQuestion);
+      document.getElementById('play-again').addEventListener('click', resetQuiz);
+      audioControl.addEventListener('click', toggleAudio);
+      sidebarToggle.addEventListener('click', toggleSidebar);
+      
+      // Set up keyboard shortcuts
+      document.addEventListener('keydown', handleKeyboardShortcuts);
+      
+      // Start background music
+      backgroundMusic.volume = 0.3;
+      if (isAudioEnabled) backgroundMusic.play().catch(e => console.log('Audio playback prevented:', e));
     });
-}
 
-function populateSidebar() {
-  const list = document.getElementById('question-list');
-  list.innerHTML = '';
-  questions.forEach((_, i) => {
-    const li = document.createElement('li');
-    li.textContent = `Question ${i + 1}`;
-    li.id = `q-${i}`;
-    list.appendChild(li);
-  });
-}
-
-function showQuestion(index) {
-  if (document.getElementById(`q-${index}`).classList.contains('completed')) return;
-  clearInterval(timer);
-  currentQuestionIndex = index;
-  teamAnswers = {};
-  document.getElementById('question-text').textContent = questions[index]['Question'];
-  const answersDiv = document.getElementById('team-answers');
-  answersDiv.innerHTML = '';
-  document.getElementById('next-question').style.display = 'none';
-  startTimer();
-  teams.forEach(team => {
-    const section = document.createElement('div');
-    section.className = 'team-section';
-    section.innerHTML = `<h3>${team}</h3>`;
-    ['A','B','C','D'].forEach(opt => {
-      if (questions[index]['Option ' + opt]) {
-        const btn = document.createElement('button');
-        btn.textContent = questions[index]['Option ' + opt];
-        btn.dataset.option = opt;
-        btn.onclick = () => handleAnswer(team, opt, btn, questions[index]);
-        section.appendChild(btn);
+    function toggleAudio() {
+      isAudioEnabled = !isAudioEnabled;
+      audioControl.textContent = isAudioEnabled ? '🔊' : '🔇';
+      
+      if (isAudioEnabled) {
+        backgroundMusic.play().catch(e => console.log('Audio playback prevented:', e));
+      } else {
+        backgroundMusic.pause();
       }
-    });
-    answersDiv.appendChild(section);
-  });
-}
-
-function handleAnswer(team, opt, btn, q) {
-  if (!teamAnswers[team]) {
-    teamAnswers[team] = opt;
-    btn.classList.add('selected');
-    if (Object.keys(teamAnswers).length === teams.length) {
-      clearInterval(timer);
-      showCorrectAnswers(q);
-      updateScores(q);
-      document.getElementById('next-question').style.display = 'block';
-      document.getElementById(`q-${currentQuestionIndex}`).classList.add('completed');
     }
-  }
-}
 
-function showCorrectAnswers(q) {
-  const correct = q['Correct Answer'];
-  document.querySelectorAll('.team-section button').forEach(btn => {
-    btn.style.border = btn.dataset.option === correct ? '2px solid green' : '1px solid #ccc';
-  });
-}
-
-function updateScores(q) {
-  teams.forEach(team => {
-    if (teamAnswers[team] === q['Correct Answer']) teamScores[team]++;
-  });
-}
-
-function startTimer() {
-  let timeLeft = TIME_LIMIT;
-  const timerDisplay = document.getElementById('timer');
-  timerDisplay.textContent = `⏱️ Time left: ${timeLeft}s`;
-  timer = setInterval(() => {
-    timeLeft--;
-    timerDisplay.textContent = `⏱️ Time left: ${timeLeft}s`;
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      showCorrectAnswers(questions[currentQuestionIndex]);
-      updateScores(questions[currentQuestionIndex]);
-      document.getElementById('next-question').style.display = 'block';
-      document.getElementById(`q-${currentQuestionIndex}`).classList.add('completed');
+    function toggleSidebar() {
+      sidebar.classList.toggle('collapsed');
+      mainContent.classList.toggle('expanded');
     }
-  }, 1000);
-}
 
-document.getElementById('next-question').onclick = () => {
-  const nextIndex = currentQuestionIndex + 1;
-  if (nextIndex < questions.length) showQuestion(nextIndex);
-  else showDrumRoll();
-};
+    function startQuiz() {
+      const teamInputs = [team1, team2, team3, team4].map(el => el.value.trim());
+      if (teamInputs.every(name => name)) {
+        teams = teamInputs;
+        teams.forEach(team => teamScores[team] = 0);
+        
+        // Animate transition
+        document.getElementById('setup').style.animation = 'fadeOut 0.5s ease';
+        setTimeout(() => {
+          document.getElementById('setup').style.display = 'none';
+          document.getElementById('quiz').style.display = 'block';
+          updateProgressBar();
+          fetchQuestions();
+        }, 500);
+        
+        if (isAudioEnabled) {
+          backgroundMusic.play().catch(e => console.log('Audio playback prevented:', e));
+        }
+      } else {
+        alert('Please enter all team names.');
+        if (isAudioEnabled) wrongSound.play();
+      }
+    }
 
-function showDrumRoll() {
-  document.getElementById('quiz').style.display = 'none';
-  const drumroll = document.getElementById('drumroll');
-  drumroll.style.display = 'block';
-  setTimeout(() => {
-    drumroll.style.display = 'none';
-    showResults();
-  }, 2000);
-}
+    function fetchQuestions() {
+      // Show loading animation
+      document.getElementById('question-text').textContent = 'Loading questions...';
+      
+      fetch(scriptUrl)
+        .then(res => res.json())
+        .then(data => {
+          questions = data;
+          populateSidebar();
+          showQuestion(0);
+        })
+        .catch(err => {
+          alert('Error loading questions.');
+          console.error(err);
+        });
+    }
 
-function showResults() {
-  const scoreboard = document.getElementById('scoreboard');
-  scoreboard.innerHTML = '<ul>' +
-    Object.entries(teamScores).map(([team, score]) => `<li><strong>${team}</strong>: ${score}</li>`).join('') + '</ul>';
-  document.getElementById('results').style.display = 'block';
-}
-</script>
+    function populateSidebar() {
+      const list = document.getElementById('question-list');
+      list.innerHTML = '';
+      questions.forEach((_, idx) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="question-number">${idx + 1}</span> Question ${idx + 1}`;
+        li.addEventListener('click', () => showQuestion(idx));
+        list.appendChild(li);
+      });
+    }
+
+    function showQuestion(index) {
+      clearInterval(timer);
+      currentQuestionIndex = index;
+      teamAnswers = {};
+      activeTeamIndex = 0;
+      
+      // Update sidebar
+      document.querySelectorAll('#sidebar li').forEach((el, i) => {
+        el.classList.toggle('active', i === index);
+        if (i < index) el.classList.add('completed');
+      });
+      
+      // Update progress bar
+      updateProgressBar();
+
+      const q = questions[index];
+      document.getElementById('question-text').textContent = q['Question'];
+      const container = document.getElementById('team-answers');
+      container.innerHTML = '';
+      document.getElementById('next-question').style.display = 'none';
+      
+      // Show team sections with animations
+      teams.forEach((team, i) => {
+        const div = document.createElement('div');
+        div.className = 'team-section';
+        div.dataset.team = team;
+        div.style.animationDelay = `${i * 0.1}s`;
+        div.innerHTML = `<h3>${team} <span class="team-score">${teamScores[team]} pts</span>${i === activeTeamIndex ? '<span class="team-active-indicator"></span>' : ''}</h3>`;
+        
+        ['A','B','C','D'].forEach(opt => {
+          if (q['Option ' + opt]) {
+            const btn = document.createElement('button');
+            btn.textContent = q['Option ' + opt];
+            btn.dataset.option = opt;
+            btn.addEventListener('click', () => handleAnswer(team, opt, btn, q));
+            div.appendChild(btn);
+          }
+        });
+        container.appendChild(div);
+      });
+      
+      startTimer();
+    }
+
+    function handleAnswer(team, opt, btn, q) {
+      if (!teamAnswers[team]) {
+        teamAnswers[team] = opt;
+        btn.classList.add('selected');
+        
+        // Play sound
+        if (isAudioEnabled) {
+          const isCorrect = opt === q['Correct Answer'];
+          if (isCorrect) {
+            correctSound.play();
+            createConfetti(btn);
+          } else {
+            wrongSound.play();
+          }
+        }
+        
+        goToNextTeam(q);
+        
+        // Check if all teams have answered
+        if (Object.keys(teamAnswers).length === teams.length) {
+          clearInterval(timer);
+          showCorrectAnswers(q);
+          updateScores(q);
+          document.getElementById('next-question').style.display = 'block';
+          markSidebarAsCompleted();
+        }
+      }
+    }
+
+    function createConfetti(element) {
+      const rect = element.getBoundingClientRect();
+      for (let i = 0; i < 20; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = `${rect.left + rect.width/2}px`;
+        confetti.style.top = `${rect.top}px`;
+        confetti.style.backgroundColor = getRandomColor();
+        confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+        document.body.appendChild(confetti);
+        
+        // Remove confetti after animation
+        setTimeout(() => {
+          confetti.remove();
+        }, 5000);
+      }
+    }
+
+    function getRandomColor() {
+      const colors = ['#2ecc71', '#3498db', '#e74c3c', '#f1c40f', '#9b59b6'];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    function goToNextTeam(q) {
+      activeTeamIndex = (activeTeamIndex + 1) % teams.length;
+      
+      // Update active team indicator
+      document.querySelectorAll('.team-section h3').forEach((h3, i) => {
+        if (i === activeTeamIndex) {
+          h3.innerHTML = `${teams[i]} <span class="team-score">${teamScores[teams[i]]} pts</span><span class="team-active-indicator"></span>`;
+        } else {
+          h3.innerHTML = `${teams[i]} <span class="team-score">${teamScores[teams[i]]} pts</span>`;
+        }
+      });
+    }
+
+    function showCorrectAnswers(q) {
+      const correct = q['Correct Answer'];
+      document.querySelectorAll('.team-section button').forEach(btn => {
+        if (btn.dataset.option === correct) {
+          btn.classList.add('correct');
+        } else if (btn.classList.contains('selected') && btn.dataset.option !== correct) {
+          btn.classList.add('incorrect');
+        }
+      });
+    }
+
+    function updateScores(q) {
+      teams.forEach(team => {
+        if (teamAnswers[team] === q['Correct Answer']) {
+          teamScores[team]++;
+          // Update score display
+          document.querySelector(`.team-section[data-team="${team}"] .team-score`).textContent = `${teamScores[team]} pts`;
+        }
+      });
+    }
+
+    function markSidebarAsCompleted() {
+      const listItems = document.querySelectorAll('#sidebar li');
+      listItems[currentQuestionIndex].classList.add('completed');
+    }
+
+    function startTimer() {
+      let timeLeft = TIME_LIMIT;
+      const timerDisplay = document.getElementById('timer span');
+      timerDisplay.textContent = timeLeft;
+      
+      if (isAudioEnabled) {
+        timerSound.currentTime = 0;
+        timerSound.play();
+      }
+      
+      timer = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = timeLeft;
+        
+        // Change color when time is running out
+        if (timeLeft <= 10) {
+          document.getElementById('timer').style.color = 'var(--danger)';
+          document.getElementById('timer').style.animation = 'pulse 0.5s infinite';
+          
+          if (timeLeft <= 5 && isAudioEnabled) {
+            countdownSound.currentTime = 0;
+            countdownSound.play();
+          }
+        }
+        
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          if (isAudioEnabled) timerSound.pause();
+          showCorrectAnswers(questions[currentQuestionIndex]);
+          updateScores(questions[currentQuestionIndex]);
+          document.getElementById('next-question').style.display = 'block';
+          markSidebarAsCompleted();
+        }
+      }, 1000);
+    }
+
+    function nextQuestion() {
+      const nextIndex = currentQuestionIndex + 1;
+      if (nextIndex < questions.length) {
+        // Animate transition
+        document.getElementById('quiz').style.animation = 'fadeOut 0.5s ease';
+        setTimeout(() => {
+          document.getElementById('quiz').style.animation = '';
+          showQuestion(nextIndex);
+        }, 500);
+      } else {
+        showResults();
+      }
+    }
+
+    function showResults() {
+      // Sort teams by score
+      const sortedTeams = teams.sort((a,b) => teamScores[b] - teamScores[a]);
+      
+      // Show celebration for winner
+      if (isAudioEnabled) {
+        winSound.play();
+        backgroundMusic.pause();
+      }
+      
+      showCelebration(sortedTeams[0]);
+      
+      // Build scoreboard
+      document.getElementById('quiz').style.display = 'none';
+      document.getElementById('results').style.display = 'block';
+      const board = document.getElementById('scoreboard');
+      board.innerHTML = '';
+      const ul = document.createElement('ul');
+      
+      sortedTeams.forEach((team, i) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span class="rank">${i+1}</span>
+          <span class="team-name">${team}</span>
+          <span class="team-score">${teamScores[team]} points</span>
+        `;
+        ul.appendChild(li);
+      });
+      
+      board.appendChild(ul);
+      updateProgressBar();
+    }
+
+    function showCelebration(winner) {
+      const celebration = document.createElement('div');
+      celebration.className = 'celebration';
+      celebration.innerHTML = `
+        <h2>🎉 ${winner} Wins! 🎉</h2>
+        <p>Congratulations to our champions!</p>
+        <button id="close-celebration">Continue to Results</button>
+      `;
+      document.body.appendChild(celebration);
+      
+      // Create lots of confetti
+      for (let i = 0; i < 100; i++) {
+        createConfetti(celebration);
+      }
+      
+      document.getElementById('close-celebration').addEventListener('click', () => {
+        celebration.remove();
+      });
+    }
+
+    function resetQuiz() {
+      // Reset all variables
+      currentQuestionIndex = 0;
+      teamScores = {};
+      teamAnswers = {};
+      
+      // Animate transition
+      document.getElementById('results').style.animation = 'fadeOut 0.5s ease';
+      setTimeout(() => {
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('setup').style.display = 'block';
+        document.getElementById('setup').style.animation = 'fadeIn 0.5s ease';
+        
+        // Reset team inputs
+        [team1, team2, team3, team4].forEach((el, i) => {
+          el.value = i < teams.length ? teams[i] : '';
+        });
+      }, 500);
+      
+      if (isAudioEnabled) {
+        backgroundMusic.currentTime = 0;
+        backgroundMusic.play();
+      }
+    }
+
+    function updateProgressBar() {
+      const progress = questions.length > 0 ? (currentQuestionIndex / questions.length) * 100 : 0;
+      document.querySelectorAll('.progress-bar').forEach(bar => {
+        bar.style.width = `${progress}%`;
+      });
+    }
+
+    function handleKeyboardShortcuts(e) {
+      // Number keys for answer selection
+      const keyMap = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+      if (keyMap[e.key]) {
+        const team = teams[activeTeamIndex];
+        const section = document.querySelector(`.team-section[data-team="${team}"]`);
+        if (section && !teamAnswers[team]) {
+          const btn = Array.from(section.querySelectorAll('button')).find(b => b.dataset.option === keyMap[e.key]);
+          if (btn) btn.click();
+        }
+      }
+      
+      // Spacebar for next question
+      if (e.key === ' ' && document.getElementById('next-question').style.display === 'block') {
+        document.getElementById('next-question').click();
+      }
+      
+      // M key to toggle audio
+      if (e.key.toLowerCase() === 'm') {
+        toggleAudio();
+      }
+      
+      // S key to toggle sidebar
+      if (e.key.toLowerCase() === 's') {
+        toggleSidebar();
+      }
+    }
+  </script>
 </body>
 </html>
