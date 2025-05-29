@@ -117,7 +117,7 @@
       width: calc(100% - 40px);
     }
     
-    #setup, #quiz, #results {
+    #setup, #quiz, #results, #question-selection, #team-selection {
       max-width: 900px;
       margin: 2rem auto;
       background: white;
@@ -452,6 +452,120 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
     
+    .dice-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 2rem 0;
+    }
+    
+    .dice {
+      width: 100px;
+      height: 100px;
+      background: white;
+      border-radius: 15px;
+      border: 3px solid var(--dark);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 3rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      margin-bottom: 1rem;
+    }
+    
+    .dice:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    }
+    
+    .dice.rolling {
+      animation: shake 0.5s infinite;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-5deg); }
+      75% { transform: rotate(5deg); }
+    }
+    
+    .question-selector {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+      margin: 1rem 0;
+    }
+    
+    .question-btn {
+      padding: 0.8rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+    
+    .question-btn:hover {
+      background: #2980b9;
+      transform: translateY(-2px);
+    }
+    
+    .question-btn:disabled {
+      background: #95a5a6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .question-btn.selected {
+      background: var(--secondary);
+      font-weight: bold;
+    }
+    
+    .current-team-display {
+      font-size: 1.5rem;
+      text-align: center;
+      margin: 1rem 0;
+      padding: 1rem;
+      background: rgba(52, 152, 219, 0.1);
+      border-radius: 8px;
+      font-weight: bold;
+    }
+    
+    .team-selection-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 2rem 0;
+      justify-content: center;
+    }
+    
+    .team-selection-btn {
+      padding: 1rem 1.5rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1.1rem;
+      min-width: 150px;
+    }
+    
+    .team-selection-btn:hover {
+      background: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .team-selection-btn.selected {
+      background: var(--secondary);
+      font-weight: bold;
+    }
+    
     @media (max-width: 768px) {
       #sidebar {
         transform: translateX(-180px);
@@ -469,6 +583,15 @@
       #main.expanded {
         margin-left: 220px;
         width: calc(100% - 220px);
+      }
+      
+      .question-selector {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      }
+      
+      .team-selection-btn {
+        min-width: 120px;
+        padding: 0.8rem 1rem;
       }
     }
   </style>
@@ -507,9 +630,28 @@
       <button id="start-quiz" class="pulse-button">🚀 Start Quiz</button>
     </div>
 
+    <div id="question-selection" style="display:none;">
+      <div class="progress-bar" style="width: 0%"></div>
+      <h2>Select a Question</h2>
+      <div class="dice-container">
+        <div class="dice" id="dice">?</div>
+        <button id="roll-dice">🎲 Roll Dice</button>
+      </div>
+      <div class="question-selector" id="question-selector"></div>
+      <button id="confirm-question" style="display:none;">Confirm Selection</button>
+    </div>
+
+    <div id="team-selection" style="display:none;">
+      <div class="progress-bar" style="width: 0%"></div>
+      <h2>Select Team to Answer</h2>
+      <div class="team-selection-container" id="team-selection-btns"></div>
+      <button id="confirm-team" style="display:none;">Confirm Team</button>
+    </div>
+
     <div id="quiz" style="display:none;">
       <div class="progress-bar" style="width: 0%"></div>
       <div id="timer">⏱️ <span>30</span> seconds remaining</div>
+      <div class="current-team-display" id="current-team-display"></div>
       <div id="question-container">
         <div class="question" id="question-text"></div>
       </div>
@@ -533,6 +675,7 @@
   <audio id="countdown-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-explosion-2759.mp3"></audio>
   <audio id="background-music" loop src="https://assets.mixkit.co/music/preview/mixkit-game-show-approach-1080.mp3"></audio>
   <audio id="win-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3"></audio>
+  <audio id="dice-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-rolling-dice-1999.mp3"></audio>
 
   <script>
     const scriptUrl = 'https://script.google.com/macros/s/AKfycbwy1BJEtmDlJq7UVVoXqgXa9v8uxQ6Wqkjw1_AtloaFaKCB_x2D5REvx8uCxj0eZbg4/exec';
@@ -545,6 +688,8 @@
     let TIME_LIMIT = 30;
     let activeTeamIndex = 0;
     let isAudioEnabled = true;
+    let answeredQuestions = [];
+    let currentTeamForQuestion = '';
 
     // DOM elements
     const audioControl = document.getElementById('audio-control');
@@ -554,9 +699,17 @@
     const countdownSound = document.getElementById('countdown-sound');
     const backgroundMusic = document.getElementById('background-music');
     const winSound = document.getElementById('win-sound');
+    const diceSound = document.getElementById('dice-sound');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('main');
+    const dice = document.getElementById('dice');
+    const rollDiceBtn = document.getElementById('roll-dice');
+    const questionSelector = document.getElementById('question-selector');
+    const confirmQuestionBtn = document.getElementById('confirm-question');
+    const confirmTeamBtn = document.getElementById('confirm-team');
+    const teamSelectionBtns = document.getElementById('team-selection-btns');
+    const currentTeamDisplay = document.getElementById('current-team-display');
 
     // Initialize app
     document.addEventListener('DOMContentLoaded', () => {
@@ -566,6 +719,9 @@
       document.getElementById('play-again').addEventListener('click', resetQuiz);
       audioControl.addEventListener('click', toggleAudio);
       sidebarToggle.addEventListener('click', toggleSidebar);
+      rollDiceBtn.addEventListener('click', rollDice);
+      confirmQuestionBtn.addEventListener('click', confirmQuestion);
+      confirmTeamBtn.addEventListener('click', confirmTeam);
       
       // Set up keyboard shortcuts
       document.addEventListener('keydown', handleKeyboardShortcuts);
@@ -596,13 +752,13 @@
       if (teamInputs.every(name => name)) {
         teams = teamInputs;
         teams.forEach(team => teamScores[team] = 0);
+        answeredQuestions = [];
         
         // Animate transition
         document.getElementById('setup').style.animation = 'fadeOut 0.5s ease';
         setTimeout(() => {
           document.getElementById('setup').style.display = 'none';
-          document.getElementById('quiz').style.display = 'block';
-          updateProgressBar();
+          document.getElementById('question-selection').style.display = 'block';
           fetchQuestions();
         }, 500);
         
@@ -624,7 +780,7 @@
         .then(data => {
           questions = data;
           populateSidebar();
-          showQuestion(0);
+          setupQuestionSelection();
         })
         .catch(err => {
           alert('Error loading questions.');
@@ -638,21 +794,131 @@
       questions.forEach((_, idx) => {
         const li = document.createElement('li');
         li.innerHTML = `<span class="question-number">${idx + 1}</span> Question ${idx + 1}`;
-        li.addEventListener('click', () => showQuestion(idx));
+        li.addEventListener('click', () => {
+          if (!answeredQuestions.includes(idx)) {
+            selectQuestion(idx);
+          }
+        });
         list.appendChild(li);
       });
+    }
+
+    function setupQuestionSelection() {
+      questionSelector.innerHTML = '';
+      questions.forEach((_, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'question-btn';
+        btn.textContent = `Q${idx + 1}`;
+        btn.dataset.index = idx;
+        btn.disabled = answeredQuestions.includes(idx);
+        if (answeredQuestions.includes(idx)) {
+          btn.classList.add('completed');
+        }
+        btn.addEventListener('click', () => selectQuestion(idx));
+        questionSelector.appendChild(btn);
+      });
+    }
+
+    function selectQuestion(index) {
+      currentQuestionIndex = index;
+      document.querySelectorAll('.question-btn').forEach(btn => {
+        btn.classList.remove('selected');
+        if (parseInt(btn.dataset.index) === index) {
+          btn.classList.add('selected');
+        }
+      });
+      confirmQuestionBtn.style.display = 'block';
+    }
+
+    function rollDice() {
+      if (isAudioEnabled) {
+        diceSound.currentTime = 0;
+        diceSound.play();
+      }
+      
+      dice.textContent = '?';
+      dice.classList.add('rolling');
+      rollDiceBtn.disabled = true;
+      
+      // Randomly select an unanswered question
+      const unansweredQuestions = questions.map((_, idx) => idx)
+        .filter(idx => !answeredQuestions.includes(idx));
+      
+      if (unansweredQuestions.length === 0) {
+        showResults();
+        return;
+      }
+      
+      // Simulate dice roll animation
+      let rolls = 0;
+      const maxRolls = 10;
+      const rollInterval = setInterval(() => {
+        const randomIndex = Math.floor(Math.random() * unansweredQuestions.length);
+        const randomQuestion = unansweredQuestions[randomIndex] + 1; // +1 to show Q1 instead of Q0
+        dice.textContent = randomQuestion;
+        
+        rolls++;
+        if (rolls >= maxRolls) {
+          clearInterval(rollInterval);
+          dice.classList.remove('rolling');
+          rollDiceBtn.disabled = false;
+          
+          // Select the final question
+          const finalIndex = unansweredQuestions[Math.floor(Math.random() * unansweredQuestions.length)];
+          selectQuestion(finalIndex);
+        }
+      }, 100);
+    }
+
+    function confirmQuestion() {
+      // Animate transition to team selection
+      document.getElementById('question-selection').style.animation = 'fadeOut 0.5s ease';
+      setTimeout(() => {
+        document.getElementById('question-selection').style.display = 'none';
+        document.getElementById('team-selection').style.display = 'block';
+        setupTeamSelection();
+      }, 500);
+    }
+
+    function setupTeamSelection() {
+      teamSelectionBtns.innerHTML = '';
+      teams.forEach(team => {
+        const btn = document.createElement('button');
+        btn.className = 'team-selection-btn';
+        btn.textContent = team;
+        btn.dataset.team = team;
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.team-selection-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          currentTeamForQuestion = team;
+          confirmTeamBtn.style.display = 'block';
+        });
+        teamSelectionBtns.appendChild(btn);
+      });
+    }
+
+    function confirmTeam() {
+      currentTeamDisplay.textContent = `${currentTeamForQuestion} is answering this question!`;
+      
+      // Animate transition to quiz
+      document.getElementById('team-selection').style.animation = 'fadeOut 0.5s ease';
+      setTimeout(() => {
+        document.getElementById('team-selection').style.display = 'none';
+        document.getElementById('quiz').style.display = 'block';
+        updateProgressBar();
+        showQuestion(currentQuestionIndex);
+      }, 500);
     }
 
     function showQuestion(index) {
       clearInterval(timer);
       currentQuestionIndex = index;
       teamAnswers = {};
-      activeTeamIndex = 0;
       
       // Update sidebar
       document.querySelectorAll('#sidebar li').forEach((el, i) => {
         el.classList.toggle('active', i === index);
-        if (i < index) el.classList.add('completed');
+        if (answeredQuestions.includes(i)) el.classList.add('completed');
       });
       
       // Update progress bar
@@ -664,25 +930,22 @@
       container.innerHTML = '';
       document.getElementById('next-question').style.display = 'none';
       
-      // Show team sections with animations
-      teams.forEach((team, i) => {
-        const div = document.createElement('div');
-        div.className = 'team-section';
-        div.dataset.team = team;
-        div.style.animationDelay = `${i * 0.1}s`;
-        div.innerHTML = `<h3>${team} <span class="team-score">${teamScores[team]} pts</span>${i === activeTeamIndex ? '<span class="team-active-indicator"></span>' : ''}</h3>`;
-        
-        ['A','B','C','D'].forEach(opt => {
-          if (q['Option ' + opt]) {
-            const btn = document.createElement('button');
-            btn.textContent = q['Option ' + opt];
-            btn.dataset.option = opt;
-            btn.addEventListener('click', () => handleAnswer(team, opt, btn, q));
-            div.appendChild(btn);
-          }
-        });
-        container.appendChild(div);
+      // Show team section for the selected team
+      const div = document.createElement('div');
+      div.className = 'team-section';
+      div.dataset.team = currentTeamForQuestion;
+      div.innerHTML = `<h3>${currentTeamForQuestion} <span class="team-score">${teamScores[currentTeamForQuestion]} pts</span></h3>`;
+      
+      ['A','B','C','D'].forEach(opt => {
+        if (q['Option ' + opt]) {
+          const btn = document.createElement('button');
+          btn.textContent = q['Option ' + opt];
+          btn.dataset.option = opt;
+          btn.addEventListener('click', () => handleAnswer(currentTeamForQuestion, opt, btn, q));
+          div.appendChild(btn);
+        }
       });
+      container.appendChild(div);
       
       startTimer();
     }
@@ -703,16 +966,10 @@
           }
         }
         
-        goToNextTeam(q);
-        
-        // Check if all teams have answered
-        if (Object.keys(teamAnswers).length === teams.length) {
-          clearInterval(timer);
-          showCorrectAnswers(q);
-          updateScores(q);
-          document.getElementById('next-question').style.display = 'block';
-          markSidebarAsCompleted();
-        }
+        showCorrectAnswers(q);
+        updateScores(q);
+        document.getElementById('next-question').style.display = 'block';
+        markSidebarAsCompleted();
       }
     }
 
@@ -739,19 +996,6 @@
       return colors[Math.floor(Math.random() * colors.length)];
     }
 
-    function goToNextTeam(q) {
-      activeTeamIndex = (activeTeamIndex + 1) % teams.length;
-      
-      // Update active team indicator
-      document.querySelectorAll('.team-section h3').forEach((h3, i) => {
-        if (i === activeTeamIndex) {
-          h3.innerHTML = `${teams[i]} <span class="team-score">${teamScores[teams[i]]} pts</span><span class="team-active-indicator"></span>`;
-        } else {
-          h3.innerHTML = `${teams[i]} <span class="team-score">${teamScores[teams[i]]} pts</span>`;
-        }
-      });
-    }
-
     function showCorrectAnswers(q) {
       const correct = q['Correct Answer'];
       document.querySelectorAll('.team-section button').forEach(btn => {
@@ -774,6 +1018,7 @@
     }
 
     function markSidebarAsCompleted() {
+      answeredQuestions.push(currentQuestionIndex);
       const listItems = document.querySelectorAll('#sidebar li');
       listItems[currentQuestionIndex].classList.add('completed');
     }
@@ -815,20 +1060,25 @@
     }
 
     function nextQuestion() {
-      const nextIndex = currentQuestionIndex + 1;
-      if (nextIndex < questions.length) {
-        // Animate transition
-        document.getElementById('quiz').style.animation = 'fadeOut 0.5s ease';
-        setTimeout(() => {
-          document.getElementById('quiz').style.animation = '';
-          showQuestion(nextIndex);
-        }, 500);
-      } else {
+      // Check if all questions have been answered
+      if (answeredQuestions.length === questions.length) {
         showResults();
+        return;
       }
+      
+      // Animate transition
+      document.getElementById('quiz').style.animation = 'fadeOut 0.5s ease';
+      setTimeout(() => {
+        document.getElementById('quiz').style.display = 'none';
+        document.getElementById('quiz').style.animation = '';
+        document.getElementById('question-selection').style.display = 'block';
+        document.getElementById('question-selection').style.animation = 'fadeIn 0.5s ease';
+        confirmQuestionBtn.style.display = 'none';
+        setupQuestionSelection();
+      }, 500);
     }
 
-    function showResults() {
+     function showResults() {
       // Sort teams by score
       const sortedTeams = teams.sort((a,b) => teamScores[b] - teamScores[a]);
       
@@ -886,6 +1136,7 @@
       currentQuestionIndex = 0;
       teamScores = {};
       teamAnswers = {};
+      answeredQuestions = [];
       
       // Animate transition
       document.getElementById('results').style.animation = 'fadeOut 0.5s ease';
@@ -907,7 +1158,7 @@
     }
 
     function updateProgressBar() {
-      const progress = questions.length > 0 ? (currentQuestionIndex / questions.length) * 100 : 0;
+      const progress = questions.length > 0 ? (answeredQuestions.length / questions.length) * 100 : 0;
       document.querySelectorAll('.progress-bar').forEach(bar => {
         bar.style.width = `${progress}%`;
       });
