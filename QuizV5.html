@@ -882,56 +882,44 @@
     }
 
     function rollDice() {
-  if (isAudioEnabled) {
-    diceSound.currentTime = 0;
-    diceSound.play();
-  }
-  
-  dice.textContent = '?';
-  dice.classList.add('rolling');
-  rollDiceBtn.disabled = true;
-  
-  // Randomly select an unanswered question
-  const unansweredQuestions = questions.map((_, idx) => idx)
-    .filter(idx => !answeredQuestions.includes(idx));
-  
-  if (unansweredQuestions.length === 0) {
-    showResults();
-    return;
-  }
-  
-  // Store the final question index we'll select
-  let finalIndex;
-  
-  // Simulate dice roll animation
-  let rolls = 0;
-  const maxRolls = 10;
-  const rollInterval = setInterval(() => {
-    const randomIndex = Math.floor(Math.random() * unansweredQuestions.length);
-    const randomQuestion = unansweredQuestions[randomIndex] + 1; // +1 to show Q1 instead of Q0
-    dice.textContent = randomQuestion;
-    
-    // Store the last shown question as the final one
-    if (rolls === maxRolls - 1) {
-      finalIndex = unansweredQuestions[randomIndex];
-    }
-    
-    rolls++;
-    if (rolls >= maxRolls) {
-      clearInterval(rollInterval);
-      dice.classList.remove('rolling');
-      rollDiceBtn.disabled = false;
+      if (isAudioEnabled) {
+        diceSound.currentTime = 0;
+        diceSound.play();
+      }
       
-      // Show the final question number that was selected
-      dice.textContent = finalIndex + 1;
+      dice.textContent = '?';
+      dice.classList.add('rolling');
+      rollDiceBtn.disabled = true;
       
-      // Select the final question after a brief delay
-      setTimeout(() => {
-        selectQuestion(finalIndex);
-      }, 500);
+      // Randomly select an unanswered question
+      const unansweredQuestions = questions.map((_, idx) => idx)
+        .filter(idx => !answeredQuestions.includes(idx));
+      
+      if (unansweredQuestions.length === 0) {
+        showResults();
+        return;
+      }
+      
+      // Simulate dice roll animation
+      let rolls = 0;
+      const maxRolls = 10;
+      const rollInterval = setInterval(() => {
+        const randomIndex = Math.floor(Math.random() * unansweredQuestions.length);
+        const randomQuestion = unansweredQuestions[randomIndex] + 1; // +1 to show Q1 instead of Q0
+        dice.textContent = randomQuestion;
+        
+        rolls++;
+        if (rolls >= maxRolls) {
+          clearInterval(rollInterval);
+          dice.classList.remove('rolling');
+          rollDiceBtn.disabled = false;
+          
+          // Select the final question
+          const finalIndex = unansweredQuestions[Math.floor(Math.random() * unansweredQuestions.length)];
+          selectQuestion(finalIndex);
+        }
+      }, 100);
     }
-  }, 100);
-}
 
     function confirmQuestion() {
       // Automatically select a random team
@@ -1181,27 +1169,24 @@
     }
 
     function showCelebration(winner) {
-  const celebration = document.createElement('div');
-  celebration.className = 'celebration';
-  celebration.innerHTML = `
-    <h2>🎉 ${winner} Wins! 🎉</h2>
-    <p>Congratulations to our champions!</p>
-    <button id="close-celebration">Continue to Results</button>
-  `;
-  document.body.appendChild(celebration);
-  
-  // Create lots of confetti
-  for (let i = 0; i < 100; i++) {
-    createConfetti(celebration);
-  }
-  
-  document.getElementById('close-celebration').addEventListener('click', () => {
-    celebration.remove();
-    // Make sure results are properly displayed
-    document.getElementById('quiz').style.display = 'none';
-    document.getElementById('results').style.display = 'block';
-  });
-}
+      const celebration = document.createElement('div');
+      celebration.className = 'celebration';
+      celebration.innerHTML = `
+        <h2>🎉 ${winner} Wins! 🎉</h2>
+        <p>Congratulations to our champions!</p>
+        <button id="close-celebration">Continue to Results</button>
+      `;
+      document.body.appendChild(celebration);
+      
+      // Create lots of confetti
+      for (let i = 0; i < 100; i++) {
+        createConfetti(celebration);
+      }
+      
+      document.getElementById('close-celebration').addEventListener('click', () => {
+        celebration.remove();
+      });
+    }
 
     function resetQuiz() {
       // Reset all variables
@@ -1247,40 +1232,6 @@
           if (btn) btn.click();
         }
       }
-
-      function showResults() {
-  // Sort teams by score
-  const sortedTeams = teams.sort((a,b) => teamScores[b] - teamScores[a]);
-  
-  // Show celebration for winner
-  if (isAudioEnabled) {
-    winSound.play();
-    backgroundMusic.pause();
-  }
-  
-  // Build scoreboard first
-  document.getElementById('quiz').style.display = 'none';
-  document.getElementById('results').style.display = 'block';
-  const board = document.getElementById('scoreboard');
-  board.innerHTML = '';
-  const ul = document.createElement('ul');
-  
-  sortedTeams.forEach((team, i) => {
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <span class="rank">${i+1}</span>
-      <span class="team-name">${team}</span>
-      <span class="team-score">${teamScores[team]} points</span>
-    `;
-    ul.appendChild(li);
-  });
-  
-  board.appendChild(ul);
-  updateProgressBar();
-  
-  // Then show celebration on top
-  showCelebration(sortedTeams[0]);
-}
       
       // Spacebar for next question
       if (e.key === ' ' && document.getElementById('next-question').style.display === 'block') {
@@ -1300,5 +1251,3 @@
   </script>
 </body>
 </html>
-        
-       
