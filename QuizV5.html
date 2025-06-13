@@ -891,7 +891,6 @@
       dice.classList.add('rolling');
       rollDiceBtn.disabled = true;
       
-      // Randomly select an unanswered question
       const unansweredQuestions = questions.map((_, idx) => idx)
         .filter(idx => !answeredQuestions.includes(idx));
       
@@ -900,13 +899,16 @@
         return;
       }
       
-      // Simulate dice roll animation
+      // Store the final question we'll select
+      const finalQuestionIndex = unansweredQuestions[Math.floor(Math.random() * unansweredQuestions.length)];
+      const finalQuestionNumber = finalQuestionIndex + 1;
+      
       let rolls = 0;
       const maxRolls = 10;
       const rollInterval = setInterval(() => {
-        const randomIndex = Math.floor(Math.random() * unansweredQuestions.length);
-        const randomQuestion = unansweredQuestions[randomIndex] + 1; // +1 to show Q1 instead of Q0
-        dice.textContent = randomQuestion;
+        // Show random numbers during animation
+        const randomNum = Math.floor(Math.random() * questions.length) + 1;
+        dice.textContent = randomNum;
         
         rolls++;
         if (rolls >= maxRolls) {
@@ -914,9 +916,13 @@
           dice.classList.remove('rolling');
           rollDiceBtn.disabled = false;
           
-          // Select the final question
-          const finalIndex = unansweredQuestions[Math.floor(Math.random() * unansweredQuestions.length)];
-          selectQuestion(finalIndex);
+          // Show the actual selected question number
+          dice.textContent = finalQuestionNumber;
+          
+          // After a brief delay, select the question
+          setTimeout(() => {
+            selectQuestion(finalQuestionIndex);
+          }, 500);
         }
       }, 100);
     }
@@ -1139,15 +1145,7 @@
       // Sort teams by score
       const sortedTeams = teams.sort((a,b) => teamScores[b] - teamScores[a]);
       
-      // Show celebration for winner
-      if (isAudioEnabled) {
-        winSound.play();
-        backgroundMusic.pause();
-      }
-      
-      showCelebration(sortedTeams[0]);
-      
-      // Build scoreboard
+      // Build scoreboard first
       document.getElementById('quiz').style.display = 'none';
       document.getElementById('results').style.display = 'block';
       const board = document.getElementById('scoreboard');
@@ -1166,6 +1164,15 @@
       
       board.appendChild(ul);
       updateProgressBar();
+      
+      // Show celebration for winner (only if there are teams with scores)
+      if (sortedTeams.length > 0 && Math.max(...Object.values(teamScores)) > 0) {
+        if (isAudioEnabled) {
+          winSound.play();
+          backgroundMusic.pause();
+        }
+        showCelebration(sortedTeams[0]);
+      }
     }
 
     function showCelebration(winner) {
@@ -1185,6 +1192,8 @@
       
       document.getElementById('close-celebration').addEventListener('click', () => {
         celebration.remove();
+        // Ensure results are visible
+        document.getElementById('results').style.display = 'block';
       });
     }
 
